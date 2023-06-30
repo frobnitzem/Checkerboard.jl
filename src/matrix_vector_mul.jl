@@ -27,9 +27,11 @@ function checkerboard_lmul!(v::AbstractVector{T}, neighbor_table::Matrix{Int},
 
     # iterate over columns of B matrix
     for color in start:step:stop
+		# the range of the checkerboard color
+		# colors[1:2, color]
 
         # perform multiply by checkerboard color
-        checkerboard_color_lmul!(v, color, neighbor_table, coshΔτt, sinhΔτt, colors, inverted=inverted)
+		checkerboard_color_lmul!(v, colors[1,color], colors[2,color], neighbor_table, coshΔτt, sinhΔτt, inverted=inverted)
     end
 
     return nothing
@@ -56,7 +58,7 @@ function checkerboard_lmul!(v::AbstractVector{T}, neighbor_table::Matrix{Int},
     for color in start:step:stop
 
         # perform multiply by checkerboard color
-        checkerboard_color_lmul!(v, color, neighbor_table, coshΔτt, sinhΔτt, colors, L, inverted=inverted)
+		checkerboard_color_lmul!(v, colors[1,color],colors[2,color], neighbor_table, coshΔτt, sinhΔτt, L, inverted=inverted)
     end
 
     return nothing
@@ -64,24 +66,20 @@ end
 
 
 @doc raw"""
-    checkerboard_color_lmul!(v::AbstractVector{T}, color::Int, neighbor_table::Matrix{Int},
-        coshΔτt::AbstractVector{E}, sinhΔτt::AbstractVector{E}, colors::Matrix{Int};
+    checkerboard_color_lmul!(v::AbstractVector{T}, start::Int, stop::Int, neighbor_table::Matrix{Int},
+        coshΔτt::AbstractVector{E}, sinhΔτt::AbstractVector{E},
         transposed::Bool=false, inverted::Bool=false) where {T<:Continuous, E<:Continuous}
 
 Multiply in-place the vector `v` by the `color` checkerboard color matrix.
 """
-function checkerboard_color_lmul!(v::AbstractVector{T}, color::Int, neighbor_table::Matrix{Int},
-    coshΔτt::AbstractVector{E}, sinhΔτt::AbstractVector{E},
-    colors::Matrix{Int}; inverted::Bool=false) where {T<:Continuous, E<:Continuous}
+function checkerboard_color_lmul!(v::AbstractVector{T}, start::Int, stop::Int,
+	neighbor_table::Matrix{Int}, coshΔτt::AbstractVector{E}, sinhΔτt::AbstractVector{E}
+    ; inverted::Bool=false) where {T<:Continuous, E<:Continuous}
 
     @assert !(T<:Real && E<:Complex) "Cannot multiply a real valued vector by a complex checkerboard matrix!"
 
     # equals -1 for matrix inverse, +1 otherwise
     inverse = (1-2*inverted)
-
-    # get the range of the checkerboard color
-    start = colors[1, color]
-    stop  = colors[2, color]
 
     # iterate over neighbor pairs
     @fastmath @inbounds  for n in start:stop
@@ -103,18 +101,13 @@ function checkerboard_color_lmul!(v::AbstractVector{T}, color::Int, neighbor_tab
 end
 
 
-function checkerboard_color_lmul!(v::AbstractVector{T}, color::Int, neighbor_table::Matrix{Int},
-    coshΔτt::AbstractVector{E}, sinhΔτt::AbstractVector{E},
-    colors::Matrix{Int}, L::Int; inverted::Bool=false) where {T<:Continuous, E<:Continuous}
+function checkerboard_color_lmul!(v::AbstractVector{T}, start::Int, stop::Int, neighbor_table::Matrix{Int},
+    coshΔτt::AbstractVector{E}, sinhΔτt::AbstractVector{E}, L::Int; inverted::Bool=false) where {T<:Continuous, E<:Continuous}
 
     @assert !(T<:Real && E<:Complex) "Cannot multiply a real valued vector by a complex checkerboard matrix!"
 
     # equals -1 for matrix inverse, +1 otherwise
     inverse = (1-2*inverted)
-
-    # get the range of the checkerboard color
-    start = colors[1, color]
-    stop  = colors[2, color]
 
     # iterate over neighbor pairs
     @fastmath @inbounds for n in start:stop
@@ -142,18 +135,14 @@ function checkerboard_color_lmul!(v::AbstractVector{T}, color::Int, neighbor_tab
 end
 
 
-function checkerboard_color_lmul!(v::AbstractVector{T}, color::Int, neighbor_table::Matrix{Int},
+function checkerboard_color_lmul!(v::AbstractVector{T}, start::Int, stop::Int, neighbor_table::Matrix{Int},
     coshΔτt::AbstractMatrix{E}, sinhΔτt::AbstractMatrix{E},
-    colors::Matrix{Int}, L::Int; inverted::Bool=false) where {T<:Continuous, E<:Continuous}
+    L::Int; inverted::Bool=false) where {T<:Continuous, E<:Continuous}
 
     @assert !(T<:Real && E<:Complex) "Cannot multiply a real valued vector by a complex checkerboard matrix!"
 
     # equals -1 for matrix inverse, +1 otherwise
     inverse = (1-2*inverted)
-
-    # get the range of the checkerboard color
-    start = colors[1, color]
-    stop  = colors[2, color]
 
     # iterate over neighbor pairs
     @fastmath @inbounds for n in start:stop
