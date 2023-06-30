@@ -43,6 +43,11 @@ using Test
     v  = randn(N)
     v′ = zeros(N)
     mul!(v′, Γ, v)
+	
+    u = zeros(N)
+	mul!(u, expnΔτK, v)
+	@test norm(v′-u)/norm(u) < Δτ*0.5
+
     lmul!(Γ⁻¹, v′)
     @test v′ ≈ v
 
