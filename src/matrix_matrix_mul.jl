@@ -3,15 +3,15 @@
 ####################################
 
 @doc raw"""
-    checkerboard_lmul!(B::AbstractMatrix{T}, neighbor_table::Matrix{Int},
-        coshΔτt::AbstractVector{T}, sinhΔτt::AbstractVector{T}, colors::Matrix{Int};
+    checkerboard_lmul!(B::AbstractMatrix{T}, neighbor_table::AbstractMatrix{Int},
+        coshΔτt::AbstractVector{T}, sinhΔτt::AbstractVector{T}, colors::AbstractMatrix{Int};
         transposed::Bool=false, inverted::Bool=false) where {T<:Continuous, E<:Continuous}
 
 Evaluate the matrix-matrix product in-place `B=Γ⋅B` where `Γ` is the checkerboard matrix.
 """
-function checkerboard_lmul!(B::AbstractMatrix{T}, neighbor_table::Matrix{Int},
+function checkerboard_lmul!(B::AbstractMatrix{T}, neighbor_table::AbstractMatrix{Int},
     coshΔτt::AbstractVector{E}, sinhΔτt::AbstractVector{E},
-    colors::Matrix{Int}; transposed::Bool=false, inverted::Bool=false) where {T<:Continuous, E<:Continuous}
+    colors::AbstractMatrix{Int}; transposed::Bool=false, inverted::Bool=false) where {T<:Continuous, E<:Continuous}
 
     @assert !(T<:Real && E<:Complex) "Cannot multiply a real valued matrix by a complex checkerboard matrix!"
 
@@ -28,8 +28,14 @@ function checkerboard_lmul!(B::AbstractMatrix{T}, neighbor_table::Matrix{Int},
     # iterate over columns of B matrix
     for color in start:step:stop
 
+        # construct views for current checkerboard color
+        n1,n2 = colors[1:2,color]
+        nt = @view neighbor_table[:,n1:n2]
+        ch = @view coshΔτt[n1:n2]
+        sh = @view sinhΔτt[n1:n2]
+
         # perform multiply by checkerboard color
-        checkerboard_color_lmul!(B, color, neighbor_table, coshΔτt, sinhΔτt, colors, inverted=inverted)
+        checkerboard_color_lmul!(B, nt, ch, sh, inverted=inverted)
     end
 
     return nothing
@@ -37,29 +43,20 @@ end
 
 
 @doc raw"""
-    checkerboard_color_lmul!(B::AbstractMatrix{T}, color::Int, neighbor_table::Matrix{Int},
-        coshΔτt::AbstractVector{T}, sinhΔτt::AbstractVector{T}, colors::Matrix{Int};
+    checkerboard_color_lmul!(B::AbstractMatrix{T}, neighbor_table::AbstractMatrix{Int},
+        coshΔτt::AbstractVector{T}, sinhΔτt::AbstractVector{T},
         inverted::Bool=false) where {T<:Continuous, E<:Continuous}
 
 Evaluate the matrix-matrix product in-place `B=Γ[c]⋅B` where `Γ[c]` is the `color` checkerboard color matrix.
 """
-function checkerboard_color_lmul!(B::AbstractMatrix{T}, color::Int, neighbor_table::Matrix{Int},
-    coshΔτt::AbstractVector{E}, sinhΔτt::AbstractVector{E},
-    colors::Matrix{Int}; inverted::Bool=false) where {T<:Continuous, E<:Continuous}
+function checkerboard_color_lmul!(B::AbstractMatrix{T}, nt::AbstractMatrix{Int},
+    ch::AbstractVector{E}, sh::AbstractVector{E};
+    inverted::Bool=false) where {T<:Continuous, E<:Continuous}
 
     @assert !(T<:Real && E<:Complex) "Cannot multiply a real valued matrix by a complex checkerboard matrix!"
 
     # equals -1 for matrix inverse, +1 otherwise
     inverse = 1 - 2*inverted
-
-    # get the range of the checkerboard color
-    start = colors[1, color]
-    stop  = colors[2, color]
-
-    # construct views for current checkerboard color
-    nt = @view neighbor_table[:,start:stop]
-    ch = @view coshΔτt[start:stop]
-    sh = @view sinhΔτt[start:stop]
 
     # iterate over columns of B
     @inbounds @fastmath for c in 1:size(B,2)
@@ -85,17 +82,17 @@ end
 
 
 @doc raw"""
-    checkerboard_rmul!(B::AbstractMatrix{T}, neighbor_table::Matrix{Int},
-        coshΔτt::AbstractVector{E}, sinhΔτt::AbstractVector{E}, colors::Matrix{Int};
+    checkerboard_rmul!(B::AbstractMatrix{T}, neighbor_table::AbstractMatrix{Int},
+        coshΔτt::AbstractVector{E}, sinhΔτt::AbstractVector{E}, colors::AbstractMatrix{Int};
         transposed::Bool=false, inverted::Bool=false) where {T<:Continuous, E<:Continuous}
 
 Evaluate the matrix-matrix product in-place `B=B⋅Γ` where `Γ` is the checkerboard matrix.
 """
-function checkerboard_rmul!(B::AbstractMatrix{T}, neighbor_table::Matrix{Int},
+function checkerboard_rmul!(B::AbstractMatrix{T}, neighbor_table::AbstractMatrix{Int},
     coshΔτt::AbstractVector{E}, sinhΔτt::AbstractVector{E},
-    colors::Matrix{Int}; transposed::Bool=false, inverted::Bool=false) where {T<:Continuous, E<:Continuous}
+    colors::AbstractMatrix{Int}; transposed::Bool=false, inverted::Bool=false) where {T<:Continuous, E<:Continuous}
 
-    @assert !(T<:Real && E<:Complex) "Cannot multiply a real valued matrix by complex a checkerboard matrix!"
+    @assert !(T<:Real && E<:Complex) "Cannot multiply a real valued matrix by a complex checkerboard matrix!"
 
     # number of checkerboard colors
     Ncolors = size(colors, 2)
@@ -110,8 +107,14 @@ function checkerboard_rmul!(B::AbstractMatrix{T}, neighbor_table::Matrix{Int},
     # iterate over columns of B matrix
     for color in stop:-step:start
 
+        # construct views for current checkerboard color
+        n1,n2 = colors[1:2,color]
+        nt = @view neighbor_table[:,n1:n2]
+        ch = @view coshΔτt[n1:n2]
+        sh = @view sinhΔτt[n1:n2]
+
         # perform multiply by checkerboard color
-        checkerboard_color_rmul!(B, color, neighbor_table, coshΔτt, sinhΔτt, colors, inverted=inverted)
+        checkerboard_color_rmul!(B, nt, ch, sh, inverted=inverted)
     end
 
     return nothing
@@ -119,29 +122,21 @@ end
 
 
 @doc raw"""
-    checkerboard_color_rmul!(B::AbstractMatrix{T}, color::Int, neighbor_table::Matrix{Int},
-        coshΔτt::AbstractVector{E}, sinhΔτt::AbstractVector{E}, colors::Matrix{Int};
+    checkerboard_color_rmul!(B::AbstractMatrix{T}, neighbor_table::AbstractMatrix{Int},
+        coshΔτt::AbstractVector{E}, sinhΔτt::AbstractVector{E};
         inverted::Bool=false) where {T<:Continuous, E<:Continuous}
 
-Evaluate the matrix-matrix product in-place `B=B⋅Γ[c]` where `Γ[c]` is the `color` checkerboard color matrix.
+Evaluate the matrix-matrix product in-place `B=B⋅Γ[c]` where `Γ[c]`
+is the `color` checkerboard color matrix.
 """
-function checkerboard_color_rmul!(B::AbstractMatrix{T}, color::Int, neighbor_table::Matrix{Int},
-    coshΔτt::AbstractVector{E}, sinhΔτt::AbstractVector{E},
-    colors::Matrix{Int}; inverted::Bool=false) where {T<:Continuous, E<:Continuous}
+function checkerboard_color_rmul!(B::AbstractMatrix{T}, nt::AbstractMatrix{Int},
+    ch::AbstractVector{E}, sh::AbstractVector{E};
+    inverted::Bool=false) where {T<:Continuous, E<:Continuous}
 
     @assert !(T<:Real && E<:Complex) "Cannot multiply a real valued matrix by a complex checkerboard matrix!"
 
     # equals -1 for matrix inverse, +1 otherwise
     inverse = 1 - 2*inverted
-
-    # get the range of the checkerboard color
-    start = colors[1, color]
-    stop  = colors[2, color]
-
-    # construct views for current checkerboard color
-    nt = @view neighbor_table[:,start:stop]
-    ch = @view coshΔτt[start:stop]
-    sh = @view sinhΔτt[start:stop]
 
     # iterate over neighbor pairs
     @inbounds @fastmath for n in 1:size(nt, 2)
